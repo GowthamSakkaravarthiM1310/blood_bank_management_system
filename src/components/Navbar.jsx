@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Droplet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+
+  // Try to get user from AuthContext
+  let authUser = null;
+  try {
+    const auth = useAuth();
+    authUser = auth?.user;
+  } catch (e) {
+    // AuthContext not available
+  }
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -14,10 +24,20 @@ const Navbar = ({ onLogout }) => {
     { name: 'Donate Blood', path: '/donor' },
     { name: 'Request Blood', path: '/request' },
     { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Profile', path: '/profile' },
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  // Get user initials or first letter
+  const getUserInitial = () => {
+    if (authUser?.name) {
+      return authUser.name.charAt(0).toUpperCase();
+    }
+    if (authUser?.email) {
+      return authUser.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
 
   return (
     <nav className="fixed w-full z-50 top-0 start-0 border-b border-gray-200/50 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300">
@@ -45,7 +65,7 @@ const Navbar = ({ onLogout }) => {
           </button>
 
           <div className="hidden w-full md:block md:w-auto" id="navbar-default">
-            <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-transparent">
+            <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-transparent items-center">
               {navLinks.map((link) => (
                 <li key={link.name}>
                   <Link
@@ -59,19 +79,25 @@ const Navbar = ({ onLogout }) => {
                   </Link>
                 </li>
               ))}
+              {/* Profile Avatar */}
               <li>
-                {onLogout ? (
-                  <button
-                    onClick={onLogout}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-5 py-2 rounded-full font-medium transition-colors border border-gray-200"
-                  >
-                    Logout
-                  </button>
-                ) : (
-                  <Link to="/login" className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-full font-medium transition-colors shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40">
-                    Login
-                  </Link>
-                )}
+                <Link
+                  to="/profile"
+                  className={`flex items-center gap-2 group ${isActive('/profile') ? 'ring-2 ring-rose-500 ring-offset-2 rounded-full' : ''}`}
+                  title={authUser?.email || 'Profile'}
+                >
+                  {authUser?.avatar_url ? (
+                    <img
+                      src={authUser.avatar_url}
+                      alt={authUser.name || 'Profile'}
+                      className="w-10 h-10 rounded-full border-2 border-rose-200 hover:border-rose-400 transition-colors object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold text-sm border-2 border-rose-200 hover:border-rose-400 transition-colors shadow-md">
+                      {getUserInitial()}
+                    </div>
+                  )}
+                </Link>
               </li>
             </ul>
           </div>
@@ -102,9 +128,25 @@ const Navbar = ({ onLogout }) => {
                   </Link>
                 </li>
               ))}
+              {/* Mobile Profile Link */}
               <li>
-                <Link to="/login" onClick={() => setIsOpen(false)} className="block w-full text-center bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-xl font-medium shadow-md">
-                  Login
+                <Link
+                  to="/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-3 py-3 px-4 bg-rose-50 rounded-xl text-rose-600 font-medium"
+                >
+                  {authUser?.avatar_url ? (
+                    <img
+                      src={authUser.avatar_url}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold text-xs">
+                      {getUserInitial()}
+                    </div>
+                  )}
+                  <span>{authUser?.name || 'My Profile'}</span>
                 </Link>
               </li>
             </ul>

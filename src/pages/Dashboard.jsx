@@ -8,59 +8,131 @@ import BloodRequest from './BloodRequest';
 import Contact from './Contact';
 import About from './About';
 
-// Simple Overview Component
-const DashboardOverview = () => (
-  <div className="space-y-6">
-    <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-600">Total Donors</h3>
-          <Users className="text-rose-500 bg-rose-50 p-2 rounded-lg h-8 w-8" />
-        </div>
-        <p className="text-3xl font-bold text-gray-900">1,234</p>
-        <p className="text-sm text-green-500 mt-2">↑ 12% from last month</p>
-      </div>
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-600">Pending Requests</h3>
-          <Heart className="text-rose-500 bg-rose-50 p-2 rounded-lg h-8 w-8" />
-        </div>
-        <p className="text-3xl font-bold text-gray-900">23</p>
-        <p className="text-sm text-rose-500 mt-2">Urgent Attention Needed</p>
-      </div>
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-600">Blood Units</h3>
-          <Database className="text-blue-500 bg-blue-50 p-2 rounded-lg h-8 w-8" />
-        </div>
-        <p className="text-3xl font-bold text-gray-900">450</p>
-        <p className="text-sm text-gray-500 mt-2">Stable inventory</p>
-      </div>
-    </div>
+import { donorsAPI, requestsAPI, banksAPI } from '../services/api';
+import { useEffect } from 'react';
 
-    {/* Recent Activity Mock */}
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-100">
-        <h2 className="font-bold text-lg text-gray-800">Recent Activity</h2>
-      </div>
-      <div className="divide-y divide-gray-100">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold">JD</div>
-              <div>
-                <p className="font-medium text-gray-900">John Doe requested A+ Blood</p>
-                <p className="text-xs text-gray-500">2 hours ago</p>
-              </div>
-            </div>
-            <button className="text-sm text-rose-600 font-medium hover:text-rose-700">View</button>
+// Dashboard Overview Component with Real Data
+const DashboardOverview = () => {
+  const [stats, setStats] = useState({
+    totalDonors: 0,
+    pendingRequests: 0,
+    totalUnits: 0
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [donorsRes, requestsRes, banksRes] = await Promise.all([
+          donorsAPI.getAll(),
+          requestsAPI.getAll(),
+          banksAPI.getAll()
+        ]);
+
+        const donors = donorsRes.donors || [];
+        const requests = requestsRes.requests || [];
+        const banks = banksRes.banks || [];
+
+        // Calculate total blood units
+        let units = 0;
+        banks.forEach(bank => {
+          if (bank.inventory && Array.isArray(bank.inventory)) {
+            bank.inventory.forEach(item => units += item.units || 0);
+          }
+        });
+
+        setStats({
+          totalDonors: donors.length,
+          pendingRequests: requests.filter(r => r.status === 'pending').length,
+          totalUnits: units
+        });
+
+        // Recent activity from requests
+        setRecentActivity(requests.slice(0, 5));
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <div className="p-10 text-center"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-rose-600 mx-auto"></div></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-600">Total Donors</h3>
+            <Users className="text-rose-500 bg-rose-50 p-2 rounded-lg h-8 w-8" />
           </div>
-        ))}
+          <p className="text-3xl font-bold text-gray-900">{stats.totalDonors}</p>
+          <p className="text-sm text-gray-500 mt-2">Registered donors</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-600">Pending Requests</h3>
+            <Heart className="text-rose-500 bg-rose-50 p-2 rounded-lg h-8 w-8" />
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{stats.pendingRequests}</p>
+          <p className="text-sm text-rose-500 mt-2">Needs attention</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-600">Blood Units</h3>
+            <Database className="text-blue-500 bg-blue-50 p-2 rounded-lg h-8 w-8" />
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{stats.totalUnits}</p>
+          <p className="text-sm text-gray-500 mt-2">Available across all banks</p>
+        </div>
+      </div>
+
+      {/* Recent Requests */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="font-bold text-lg text-gray-800">Recent Requests</h2>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {recentActivity.length === 0 ? (
+            <p className="p-6 text-gray-500 text-center">No recent activity</p>
+          ) : (
+            recentActivity.map((request) => (
+              <div key={request.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold">
+                    {request.requester_name ? request.requester_name[0].toUpperCase() : 'U'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {request.requester_name || 'User'} requested <span className="font-bold">{request.blood_type}</span> Blood
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(request.created_at).toLocaleDateString()} at {new Date(request.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    request.status === 'fulfilled' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                  }`}>
+                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -99,8 +171,8 @@ const Dashboard = () => {
                 <Link
                   to={item.path}
                   className={`flex items-center p-3 rounded-lg group transition-colors ${isActive(item.path)
-                      ? 'bg-rose-50 text-rose-600'
-                      : 'text-gray-900 hover:bg-gray-100'
+                    ? 'bg-rose-50 text-rose-600'
+                    : 'text-gray-900 hover:bg-gray-100'
                     }`}
                 >
                   <item.icon className={`w-5 h-5 transition duration-75 ${isActive(item.path) ? 'text-rose-600' : 'text-gray-500 group-hover:text-gray-900'}`} />
