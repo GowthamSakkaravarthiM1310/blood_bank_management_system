@@ -8,30 +8,53 @@ const AuthCallback = () => {
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
-        const token = searchParams.get('token');
-        const error = searchParams.get('error');
+        const handleAuth = async () => {
+            const token = searchParams.get('token');
+            const error = searchParams.get('error');
 
-        if (error) {
-            // Handle error
-            console.error('OAuth Error:', error);
-            navigate('/login?error=' + error);
-            return;
-        }
+            if (error) {
+                console.error('OAuth Error:', error);
+                navigate('/login?error=' + error);
+                return;
+            }
 
-        if (token) {
-            // Store token
-            localStorage.setItem('token', token);
+            if (token) {
+                // Store token
+                localStorage.setItem('token', token);
 
-            // Redirect to home after a brief delay to show success
-            setTimeout(() => {
-                navigate('/');
-                // Force page reload to update auth state
-                window.location.reload();
-            }, 1500);
-        } else {
-            // No token, redirect to login
-            navigate('/login');
-        }
+                // Fetch user data from server
+                try {
+                    const res = await fetch('http://localhost:3001/auth/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        // Check if user needs to complete profile (no username = new Google user)
+                        if (!data.user.username) {
+                            setTimeout(() => {
+                                navigate('/complete-profile');
+                            }, 1500);
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch user:', err);
+                }
+
+                // Redirect to home after a brief delay to show success
+                setTimeout(() => {
+                    navigate('/');
+                    window.location.reload();
+                }, 1500);
+            } else {
+                navigate('/login');
+            }
+        };
+
+        handleAuth();
     }, [navigate, searchParams]);
 
     return (

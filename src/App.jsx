@@ -16,6 +16,7 @@ import { AnimatePresence } from 'framer-motion'
 import FrontPage from './components/FrontPage'
 import UserProfile from './pages/UserProfile'
 import AuthCallback from './pages/AuthCallback'
+import CompleteProfile from './pages/CompleteProfile'
 
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { RealtimeProvider } from './context/RealtimeContext'
@@ -126,6 +127,7 @@ const AppContent = () => {
                     <Route path="/register" element={<Navigate to="/" replace />} />
                     <Route path="/dashboard/*" element={<Dashboard />} />
                     <Route path="/profile" element={<UserProfile />} />
+                    <Route path="/complete-profile" element={<CompleteProfile />} />
                     <Route path="/donor" element={<BloodDonor />} />
                     <Route path="/request" element={<BloodRequest />} />
                     <Route path="/bank" element={<BloodBank />} />

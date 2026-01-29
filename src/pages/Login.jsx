@@ -12,8 +12,6 @@ const Login = ({ onConnect }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState('');
 
   let authContext;
   try {
@@ -49,10 +47,6 @@ const Login = ({ onConnect }) => {
         if (onConnect) onConnect();
         navigate('/');
         window.location.reload();
-      } else if (data.needsVerification) {
-        setNeedsVerification(true);
-        setVerificationEmail(data.email);
-        toast.error('Please verify your email first');
       } else {
         toast.error(data.error || 'Login failed');
       }
@@ -63,19 +57,7 @@ const Login = ({ onConnect }) => {
     }
   };
 
-  const handleResendOTP = async () => {
-    try {
-      const res = await fetch('http://localhost:3001/auth/resend-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: verificationEmail })
-      });
-      const data = await res.json();
-      toast[data.emailSent ? 'success' : 'error'](data.message);
-    } catch (error) {
-      toast.error('Failed to resend OTP');
-    }
-  };
+
 
   return (
     <div className="min-h-screen pt-20 flex bg-slate-50">
@@ -168,14 +150,7 @@ const Login = ({ onConnect }) => {
               </button>
             </form>
 
-            {needsVerification && (
-              <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p className="text-sm text-yellow-800">Your email needs verification.</p>
-                <button onClick={handleResendOTP} className="mt-2 text-sm font-medium text-yellow-700 hover:underline">
-                  Resend verification email to {verificationEmail}
-                </button>
-              </div>
-            )}
+
 
             <p className="mt-6 text-center text-sm text-gray-500">
               <Link to="/admin" className="text-gray-400 hover:text-gray-600">Admin Login</Link>

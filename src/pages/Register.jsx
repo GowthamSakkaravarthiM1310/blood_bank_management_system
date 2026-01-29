@@ -10,8 +10,6 @@ const Register = () => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [locations, setLocations] = useState({ states: [], districts: [], cities: [] });
-    const [otpSent, setOtpSent] = useState(false);
-    const [otp, setOtp] = useState('');
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -97,58 +95,13 @@ const Register = () => {
             const data = await res.json();
 
             if (res.ok) {
-                toast.success(data.message);
-                setOtpSent(true);
-                setStep(4);
+                toast.success('Registration successful! You can now login.');
+                navigate('/login');
             } else {
                 toast.error(data.error || 'Registration failed');
             }
         } catch (error) {
             toast.error('Registration failed. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOTP = async () => {
-        if (otp.length !== 6) {
-            toast.error('Please enter valid 6-digit OTP');
-            return;
-        }
-        setLoading(true);
-        try {
-            const res = await fetch('http://localhost:3001/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email, otp })
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                toast.success('Email verified! You can now login.');
-                navigate('/login');
-            } else {
-                toast.error(data.error);
-            }
-        } catch (error) {
-            toast.error('Verification failed');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const resendOTP = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch('http://localhost:3001/auth/resend-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email })
-            });
-            const data = await res.json();
-            toast[data.emailSent ? 'success' : 'error'](data.message);
-        } catch (error) {
-            toast.error('Failed to resend OTP');
         } finally {
             setLoading(false);
         }
@@ -168,12 +121,12 @@ const Register = () => {
                             <span className="text-2xl font-bold">LifeFlow</span>
                         </Link>
                         <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-                        <p className="text-gray-500 mt-1">Step {step} of 4</p>
+                        <p className="text-gray-500 mt-1">Step {step} of 3</p>
                     </div>
 
                     {/* Progress Bar */}
                     <div className="flex gap-2 mb-8">
-                        {[1, 2, 3, 4].map(s => (
+                        {[1, 2, 3].map(s => (
                             <div key={s} className={`flex-1 h-2 rounded-full transition-colors ${s <= step ? 'bg-rose-500' : 'bg-gray-200'}`} />
                         ))}
                     </div>
@@ -295,35 +248,7 @@ const Register = () => {
                             </>
                         )}
 
-                        {/* Step 4: OTP Verification */}
-                        {step === 4 && (
-                            <>
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Mail className="w-8 h-8 text-green-600" />
-                                    </div>
-                                    <h2 className="text-xl font-bold text-gray-900">Verify Your Email</h2>
-                                    <p className="text-gray-500 mt-2">We've sent a 6-digit OTP to<br /><span className="font-medium text-gray-700">{formData.email}</span></p>
-                                </div>
-                                <div>
-                                    <label className={labelClass}>Enter OTP</label>
-                                    <input
-                                        type="text"
-                                        value={otp}
-                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        className="w-full px-4 py-4 text-center text-2xl font-bold tracking-widest border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500"
-                                        placeholder="000000"
-                                        maxLength={6}
-                                    />
-                                </div>
-                                <button onClick={handleVerifyOTP} disabled={loading || otp.length !== 6} className="w-full py-3 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
-                                    {loading ? <Loader2 className="animate-spin" size={18} /> : <><CheckCircle size={18} /> Verify Email</>}
-                                </button>
-                                <button onClick={resendOTP} disabled={loading} className="w-full py-3 text-rose-600 font-medium hover:underline">
-                                    Didn't receive? Resend OTP
-                                </button>
-                            </>
-                        )}
+
                     </motion.div>
 
                     <p className="text-center text-gray-500 mt-6">

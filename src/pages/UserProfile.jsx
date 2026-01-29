@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Droplet, Calendar, Edit, Save, X, Loader2, LogOut } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Droplet, Calendar, Edit, Save, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -324,28 +324,6 @@ const UserProfile = () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Account Actions Section */}
-                        <div className="mt-8 pt-6 border-t border-gray-200">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900">Account</h3>
-                                    <p className="text-sm text-gray-500">Manage your account settings</p>
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        await logout();
-                                        toast.success('Logged out successfully');
-                                        navigate('/');
-                                        window.location.reload();
-                                    }}
-                                    className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-xl font-medium transition-all border border-gray-200 hover:border-red-200"
-                                >
-                                    <LogOut className="w-5 h-5" />
-                                    Sign Out
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </motion.div>
             </div>
@@ -354,3 +332,4 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+

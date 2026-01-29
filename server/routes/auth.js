@@ -2,61 +2,10 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
-import nodemailer from 'nodemailer';
 import pool from '../config/db.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'blood-bank-jwt-secret';
-
-// Email transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER || 'bloodbankapp2024@gmail.com',
-        pass: process.env.EMAIL_PASS || 'your-app-password'
-    }
-});
-
-// Generate 6-digit OTP
-const generateOTP = () => {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log('Generated OTP:', otp); // For development
-    return otp;
-};
-
-// Send OTP email
-const sendOTPEmail = async (email, otp, name) => {
-    try {
-        await transporter.sendMail({
-            from: `"LifeFlow Blood Bank" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: 'Verify Your Email - LifeFlow Blood Bank',
-            html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #e11d48; text-align: center;">🩸 LifeFlow Blood Bank</h1>
-          <h2>Hello ${name}!</h2>
-          <p>Please use the following OTP to verify your email:</p>
-          <div style="background: linear-gradient(135deg, #e11d48, #dc2626); color: white; font-size: 32px; font-weight: bold; padding: 20px; text-align: center; border-radius: 10px; letter-spacing: 5px; margin: 20px 0;">
-            ${otp}
-          </div>
-          <p style="color: #666;">This OTP is valid for 10 minutes.</p>
-        </div>
-      `
-        });
-        return true;
-    } catch (error) {
-        // Mock Email Service Fallback
-        console.log('\n==================================================');
-        console.log('⚠️  EMAIL SENDING FAILED (Expected in Dev) ⚠️');
-        console.log('--------------------------------------------------');
-        console.log(`📧 To:      ${email}`);
-        console.log(`🔑 OTP:     ${otp}`);
-        console.log('--------------------------------------------------');
-        console.log('✅ Simulating success for development flow...');
-        console.log('==================================================\n');
-        return true; // Return true to allow flow to continue
-    }
-};
 
 // Register new user
 router.post('/register', async (req, res) => {
@@ -80,25 +29,20 @@ router.post('/register', async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const otp = generateOTP();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
         const fullName = `${firstname} ${lastname}`;
         const location = `${cityVillage || ''}, ${district || ''}, ${state || ''}, India`;
 
         const [result] = await pool.query(
-            `INSERT INTO users (username, email, password, firstname, lastname, name, age, phone, blood_type, state, district, city_village, location, otp_code, otp_expires, email_verified)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)`,
-            [username, email, hashedPassword, firstname, lastname, fullName, age || null, phone || null, bloodType || null, state || null, district || null, cityVillage || null, location, otp, otpExpires]
+            `INSERT INTO users (username, email, password, firstname, lastname, name, age, phone, blood_type, state, district, city_village, location, email_verified)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+            [username, email, hashedPassword, firstname, lastname, fullName, age || null, phone || null, bloodType || null, state || null, district || null, cityVillage || null, location]
         );
-
-        const emailSent = await sendOTPEmail(email, otp, firstname);
 
         res.status(201).json({
             success: true,
-            message: emailSent ? 'Registration successful! Check email for OTP.' : 'Registration successful! OTP sending failed.',
+            message: 'Registration successful! You can now login.',
             userId: result.insertId,
-            email,
-            emailSent
+            email
         });
 
     } catch (error) {
@@ -107,44 +51,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Verify OTP
-router.post('/verify-otp', async (req, res) => {
-    try {
-        const { email, otp } = req.body;
 
-        const [users] = await pool.query('SELECT id, otp_code, otp_expires FROM users WHERE email = ?', [email]);
-        if (users.length === 0) return res.status(404).json({ error: 'User not found' });
-
-        const user = users[0];
-        if (user.otp_code !== otp) return res.status(400).json({ error: 'Invalid OTP' });
-        if (new Date() > new Date(user.otp_expires)) return res.status(400).json({ error: 'OTP expired' });
-
-        await pool.query('UPDATE users SET email_verified = TRUE, otp_code = NULL, otp_expires = NULL WHERE id = ?', [user.id]);
-        res.json({ success: true, message: 'Email verified! You can now login.' });
-
-    } catch (error) {
-        res.status(500).json({ error: 'Verification failed' });
-    }
-});
-
-// Resend OTP
-router.post('/resend-otp', async (req, res) => {
-    try {
-        const { email } = req.body;
-        const [users] = await pool.query('SELECT id, firstname FROM users WHERE email = ?', [email]);
-        if (users.length === 0) return res.status(404).json({ error: 'Email not found' });
-
-        const otp = generateOTP();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-        await pool.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE email = ?', [otp, otpExpires, email]);
-
-        const emailSent = await sendOTPEmail(email, otp, users[0].firstname);
-        res.json({ success: true, message: emailSent ? 'OTP sent' : 'Failed to send', emailSent });
-
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to resend OTP' });
-    }
-});
 
 // Login
 router.post('/login', async (req, res) => {
@@ -158,9 +65,6 @@ router.post('/login', async (req, res) => {
         }
 
         const user = users[0];
-        if (!user.email_verified) {
-            return res.status(403).json({ error: 'Email not verified', needsVerification: true, email: user.email });
-        }
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) return res.status(401).json({ error: 'Incorrect password' });
@@ -236,6 +140,52 @@ router.put('/profile', async (req, res) => {
     }
 });
 
+// Complete profile for new Google users
+router.post('/complete-profile', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) return res.status(401).json({ error: 'No token' });
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const { username, password, phone, bloodType, state, district, cityVillage } = req.body;
+
+        if (!username) {
+            return res.status(400).json({ error: 'Username is required' });
+        }
+
+        // Check if username already exists
+        const [existingUsername] = await pool.query('SELECT id FROM users WHERE username = ? AND id != ?', [username, decoded.id]);
+        if (existingUsername.length > 0) {
+            return res.status(400).json({ error: 'Username already taken' });
+        }
+
+        const location = `${cityVillage || ''}, ${district || ''}, ${state || ''}, India`.replace(/^, |, $/g, '');
+
+        // Build update query
+        let updateQuery = 'UPDATE users SET username = ?, phone = ?, blood_type = ?, state = ?, district = ?, city_village = ?, location = ?';
+        let params = [username, phone || null, bloodType || null, state || null, district || null, cityVillage || null, location || null];
+
+        // Hash and add password if provided
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateQuery += ', password = ?';
+            params.push(hashedPassword);
+        }
+
+        updateQuery += ' WHERE id = ?';
+        params.push(decoded.id);
+
+        await pool.query(updateQuery, params);
+
+        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+        res.json({ success: true, user: users[0] });
+
+    } catch (error) {
+        console.error('Complete profile error:', error);
+        res.status(500).json({ error: 'Failed to complete profile' });
+    }
+});
+
 // Logout
 router.post('/logout', (req, res) => {
     req.logout?.(() => { });
@@ -243,3 +193,4 @@ router.post('/logout', (req, res) => {
 });
 
 export default router;
+

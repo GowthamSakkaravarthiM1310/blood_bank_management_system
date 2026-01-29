@@ -1,21 +1,38 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Droplet } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Droplet, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const Navbar = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Try to get user from AuthContext
   let authUser = null;
+  let logout = null;
   try {
     const auth = useAuth();
     authUser = auth?.user;
+    logout = auth?.logout;
   } catch (e) {
     // AuthContext not available
   }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -37,6 +54,16 @@ const Navbar = ({ onLogout }) => {
       return authUser.email.charAt(0).toUpperCase();
     }
     return 'U';
+  };
+
+  const handleLogout = async () => {
+    setShowProfileMenu(false);
+    if (logout) {
+      await logout();
+    }
+    toast.success('Logged out successfully');
+    navigate('/');
+    window.location.reload();
   };
 
   return (
@@ -79,11 +106,11 @@ const Navbar = ({ onLogout }) => {
                   </Link>
                 </li>
               ))}
-              {/* Profile Avatar */}
-              <li>
-                <Link
-                  to="/profile"
-                  className={`flex items-center gap-2 group ${isActive('/profile') ? 'ring-2 ring-rose-500 ring-offset-2 rounded-full' : ''}`}
+              {/* Profile Avatar with Dropdown */}
+              <li className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className={`flex items-center gap-2 focus:outline-none ${isActive('/profile') ? 'ring-2 ring-rose-500 ring-offset-2 rounded-full' : ''}`}
                   title={authUser?.email || 'Profile'}
                 >
                   {authUser?.avatar_url ? (
@@ -97,7 +124,42 @@ const Navbar = ({ onLogout }) => {
                       {getUserInitial()}
                     </div>
                   )}
-                </Link>
+                </button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {showProfileMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50"
+                    >
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900 truncate">{authUser?.name || 'User'}</p>
+                        <p className="text-xs text-gray-500 truncate">{authUser?.email}</p>
+                      </div>
+                      <div className="py-1">
+                        <Link
+                          to="/profile"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          View Profile
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </li>
             </ul>
           </div>
@@ -148,6 +210,16 @@ const Navbar = ({ onLogout }) => {
                   )}
                   <span>{authUser?.name || 'My Profile'}</span>
                 </Link>
+              </li>
+              {/* Mobile Logout */}
+              <li>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-gray-100 rounded-xl text-gray-700 font-medium hover:bg-red-50 hover:text-red-600 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Sign Out
+                </button>
               </li>
             </ul>
           </motion.div>
