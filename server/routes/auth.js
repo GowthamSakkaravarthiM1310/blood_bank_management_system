@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'blood-bank-jwt-secret';
 // Register new user
 router.post('/register', async (req, res) => {
     try {
-        const { username, email, password, firstname, lastname, age, phone, bloodType, state, district, cityVillage } = req.body;
+        const { username, email, password, firstname, lastname, age, phone, bloodType, state, district, cityVillage, userType, bloodBankId, bankName, bankLocation, bankPhone, bankHours } = req.body;
 
         if (!username || !email || !password || !firstname || !lastname) {
             return res.status(400).json({ error: 'Required: username, email, password, firstname, lastname' });
@@ -32,17 +32,36 @@ router.post('/register', async (req, res) => {
         const fullName = `${firstname} ${lastname}`;
         const location = `${cityVillage || ''}, ${district || ''}, ${state || ''}, India`;
 
+        // Handle blood bank user registration
+        let finalBloodBankId = bloodBankId || null;
+        if (userType === 'blood_bank' && !bloodBankId && bankName) {
+            // Create new blood bank for this user
+            const [bankResult] = await pool.query(
+                'INSERT INTO blood_banks (name, location, phone, hours) VALUES (?, ?, ?, ?)',
+                [bankName, bankLocation || location, bankPhone || phone, bankHours || '9 AM - 5 PM']
+            );
+            finalBloodBankId = bankResult.insertId;
+
+            // Initialize blood inventory for the new bank
+            const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+            for (const bt of bloodTypes) {
+                await pool.query('INSERT INTO blood_inventory (bank_id, blood_type, units) VALUES (?, ?, 0)', [finalBloodBankId, bt]);
+            }
+        }
+
         const [result] = await pool.query(
-            `INSERT INTO users (username, email, password, firstname, lastname, name, age, phone, blood_type, state, district, city_village, location, email_verified)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
-            [username, email, hashedPassword, firstname, lastname, fullName, age || null, phone || null, bloodType || null, state || null, district || null, cityVillage || null, location]
+            `INSERT INTO users (username, email, password, firstname, lastname, name, age, phone, blood_type, state, district, city_village, location, email_verified, user_type, blood_bank_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)`,
+            [username, email, hashedPassword, firstname, lastname, fullName, age || null, phone || null, bloodType || null, state || null, district || null, cityVillage || null, location, userType || 'normal', finalBloodBankId]
         );
 
         res.status(201).json({
             success: true,
             message: 'Registration successful! You can now login.',
             userId: result.insertId,
-            email
+            email,
+            userType: userType || 'normal',
+            bloodBankId: finalBloodBankId
         });
 
     } catch (error) {
@@ -69,7 +88,7 @@ router.post('/login', async (req, res) => {
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) return res.status(401).json({ error: 'Incorrect password' });
 
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role, user_type: user.user_type }, JWT_SECRET, { expiresIn: '7d' });
 
         res.json({
             success: true,
@@ -78,7 +97,8 @@ router.post('/login', async (req, res) => {
                 id: user.id, username: user.username, email: user.email, name: user.name,
                 firstname: user.firstname, lastname: user.lastname, age: user.age, phone: user.phone,
                 blood_type: user.blood_type, state: user.state, district: user.district,
-                city_village: user.city_village, location: user.location, avatar_url: user.avatar_url, role: user.role
+                city_village: user.city_village, location: user.location, avatar_url: user.avatar_url, role: user.role,
+                user_type: user.user_type || 'normal', blood_bank_id: user.blood_bank_id
             }
         });
 
@@ -107,7 +127,7 @@ router.get('/me', async (req, res) => {
 
         const decoded = jwt.verify(token, JWT_SECRET);
         const [users] = await pool.query(
-            'SELECT id, username, email, name, firstname, lastname, age, phone, blood_type, state, district, city_village, location, avatar_url, role, google_id FROM users WHERE id = ?',
+            'SELECT id, username, email, name, firstname, lastname, age, phone, blood_type, state, district, city_village, location, avatar_url, role, google_id, user_type, blood_bank_id FROM users WHERE id = ?',
             [decoded.id]
         );
         if (users.length === 0) return res.status(404).json({ error: 'User not found' });

@@ -147,6 +147,29 @@ export const banksAPI = {
         }),
 };
 
+// Blood Bank User API (for blood bank managers)
+export const bloodBankUserAPI = {
+    // Get user's associated bank with inventory
+    getBank: () => apiCall('/api/blood-bank-user/bank'),
+
+    // Update bank details
+    updateBank: (data) =>
+        apiCall('/api/blood-bank-user/bank', {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+
+    // Update inventory
+    updateInventory: (data) =>
+        apiCall('/api/blood-bank-user/inventory', {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+
+    // Get blood requests
+    getRequests: () => apiCall('/api/blood-bank-user/requests'),
+};
+
 // Health check
 export const healthCheck = () => apiCall('/api/health');
 
@@ -155,5 +178,6 @@ export default {
     donors: donorsAPI,
     requests: requestsAPI,
     banks: banksAPI,
+    bloodBankUser: bloodBankUserAPI,
     healthCheck,
 };

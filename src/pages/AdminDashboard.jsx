@@ -215,6 +215,7 @@ const AdminDashboard = () => {
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Blood</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
@@ -238,6 +239,11 @@ const AdminDashboard = () => {
                                             <td className="px-4 py-3">
                                                 <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-medium">
                                                     {user.blood_type || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.user_type === 'blood_bank' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    {user.user_type === 'blood_bank' ? 'Blood Bank' : 'Normal'}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">
@@ -317,6 +323,7 @@ const AdminDashboard = () => {
                             <table className="w-full">
                                 <thead className="bg-gray-50">
                                     <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requester</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Blood</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
@@ -328,6 +335,13 @@ const AdminDashboard = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {requests.map(req => (
                                         <tr key={req.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3">
+                                                <div>
+                                                    <p className="font-medium text-gray-900">{req.user_name || req.requester_name || 'Unknown'}</p>
+                                                    <p className="text-xs text-gray-500">@{req.username}</p>
+                                                    <p className="text-xs text-gray-400">{req.user_email || req.requester_email}</p>
+                                                </div>
+                                            </td>
                                             <td className="px-4 py-3 font-medium">{req.patient_name}</td>
                                             <td className="px-4 py-3">
                                                 <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-bold">{req.blood_type}</span>
@@ -351,7 +365,7 @@ const AdminDashboard = () => {
                                         </tr>
                                     ))}
                                     {requests.length === 0 && (
-                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500">No blood requests yet</td></tr>
+                                        <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-500">No blood requests yet</td></tr>
                                     )}
                                 </tbody>
                             </table>

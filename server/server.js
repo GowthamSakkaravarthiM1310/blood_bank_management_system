@@ -18,6 +18,7 @@ import bankRoutes from './routes/banks.js';
 import adminRoutes from './routes/admin.js';
 import locationRoutes from './routes/locations.js';
 import uploadRoutes from './routes/upload.js';
+import bloodBankUserRoutes from './routes/bloodBankUser.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -84,6 +85,7 @@ app.use('/api/banks', bankRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/blood-bank-user', bloodBankUserRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

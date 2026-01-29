@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard'
 import BloodDonor from './pages/BloodDonor'
 import BloodRequest from './pages/BloodRequest'
 import BloodBank from './pages/BloodBank'
+import BloodBankDashboard from './pages/BloodBankDashboard'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import { AnimatePresence } from 'framer-motion'
@@ -84,6 +85,10 @@ const AppContent = () => {
     setShowLoginFlow(false);
   };
 
+  // Get user type from auth context
+  const userType = auth?.user?.user_type || 'normal';
+  const isBloodBankUser = userType === 'blood_bank';
+
   return (
     <BrowserRouter>
       <Routes>
@@ -120,7 +125,7 @@ const AppContent = () => {
               path="/*"
               element={
                 <>
-                  <Navbar onLogout={handleLogout} />
+                  <Navbar onLogout={handleLogout} isBloodBankUser={isBloodBankUser} />
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Navigate to="/" replace />} />
@@ -128,9 +133,26 @@ const AppContent = () => {
                     <Route path="/dashboard/*" element={<Dashboard />} />
                     <Route path="/profile" element={<UserProfile />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
-                    <Route path="/donor" element={<BloodDonor />} />
-                    <Route path="/request" element={<BloodRequest />} />
-                    <Route path="/bank" element={<BloodBank />} />
+
+                    {/* Routes based on user type */}
+                    {isBloodBankUser ? (
+                      <>
+                        {/* Blood Bank User Routes */}
+                        <Route path="/bank-dashboard" element={<BloodBankDashboard />} />
+                        <Route path="/donor" element={<Navigate to="/bank-dashboard" replace />} />
+                        <Route path="/request" element={<Navigate to="/bank-dashboard" replace />} />
+                        <Route path="/bank" element={<Navigate to="/bank-dashboard" replace />} />
+                      </>
+                    ) : (
+                      <>
+                        {/* Normal User Routes */}
+                        <Route path="/donor" element={<BloodDonor />} />
+                        <Route path="/request" element={<BloodRequest />} />
+                        <Route path="/bank" element={<BloodBank />} />
+                        <Route path="/bank-dashboard" element={<Navigate to="/" replace />} />
+                      </>
+                    )}
+
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </>

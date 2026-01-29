@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Droplet, User, LogOut } from 'lucide-react';
+import { Menu, X, Droplet, User, LogOut, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
-const Navbar = ({ onLogout }) => {
+const Navbar = ({ onLogout, isBloodBankUser }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
@@ -36,7 +36,12 @@ const Navbar = ({ onLogout }) => {
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
-  const navLinks = [
+  // Different nav links based on user type
+  const navLinks = isBloodBankUser || authUser?.user_type === 'blood_bank' ? [
+    { name: 'Home', path: '/' },
+    { name: 'Manage Inventory', path: '/bank-dashboard' },
+    { name: 'Dashboard', path: '/dashboard' },
+  ] : [
     { name: 'Home', path: '/' },
     { name: 'Donate Blood', path: '/donor' },
     { name: 'Request Blood', path: '/request' },
@@ -106,6 +111,16 @@ const Navbar = ({ onLogout }) => {
                   </Link>
                 </li>
               ))}
+
+              {/* User Type Badge */}
+              {(isBloodBankUser || authUser?.user_type === 'blood_bank') && (
+                <li>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-medium">
+                    <Building2 className="w-3 h-3" /> Bank Manager
+                  </span>
+                </li>
+              )}
+
               {/* Profile Avatar with Dropdown */}
               <li className="relative" ref={profileMenuRef}>
                 <button
@@ -139,6 +154,11 @@ const Navbar = ({ onLogout }) => {
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900 truncate">{authUser?.name || 'User'}</p>
                         <p className="text-xs text-gray-500 truncate">{authUser?.email}</p>
+                        {authUser?.user_type === 'blood_bank' && (
+                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-xs">
+                            <Building2 className="w-3 h-3" /> Bank Manager
+                          </span>
+                        )}
                       </div>
                       <div className="py-1">
                         <Link

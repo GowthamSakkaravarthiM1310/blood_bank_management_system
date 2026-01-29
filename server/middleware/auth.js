@@ -15,8 +15,8 @@ export const authenticateToken = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Get user from database
-        const users = await query('SELECT id, email, name, role, blood_type, avatar_url FROM users WHERE id = ?', [decoded.userId]);
+        // Get user from database (use decoded.id which is set in auth.js)
+        const users = await query('SELECT id, email, name, role, blood_type, avatar_url, user_type, blood_bank_id FROM users WHERE id = ?', [decoded.id || decoded.userId]);
 
         if (users.length === 0) {
             return res.status(401).json({ error: 'User not found.' });
@@ -44,7 +44,7 @@ export const optionalAuth = async (req, res, next) => {
 
         if (token) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const users = await query('SELECT id, email, name, role, blood_type, avatar_url FROM users WHERE id = ?', [decoded.userId]);
+            const users = await query('SELECT id, email, name, role, blood_type, avatar_url, user_type, blood_bank_id FROM users WHERE id = ?', [decoded.id || decoded.userId]);
             if (users.length > 0) {
                 req.user = users[0];
             }

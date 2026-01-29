@@ -22,14 +22,9 @@ function BloodBank() {
       setBanks(response.banks || []);
     } catch (error) {
       console.error('Failed to fetch banks:', error);
-      // Fallback to mock data
-      setBanks([
-        { id: 1, name: 'Central City Branch', location: 'Downtown, 5th Ave', phone: '555-0101', hours: '24/7', A: 12, B: 8, O: 18, AB: 4 },
-        { id: 2, name: 'Northside Clinic', location: 'North Hills, Block C', phone: '555-0202', hours: '8am - 10pm', A: 6, B: 15, O: 9, AB: 2 },
-        { id: 3, name: 'South General Hospital', location: 'South Gate, Ring Rd', phone: '555-0303', hours: '24/7', A: 14, B: 5, O: 7, AB: 8 },
-        { id: 4, name: 'West End Center', location: 'West End, Mall Plaza', phone: '555-0404', hours: '9am - 5pm', A: 9, B: 11, O: 13, AB: 5 }
-      ]);
-      toast.error('Using offline data - API unavailable');
+      // No fallback data - only show real banks
+      setBanks([]);
+      toast.error('Failed to load blood banks');
     } finally {
       setLoading(false);
     }
